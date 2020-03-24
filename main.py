@@ -5,9 +5,26 @@ from matplotlib import pyplot as plt
 
 
 def preprocess_image(img):
+    # Copy the image
+    outer_box = img.copy()
+
     # Convert the image to gray-scale
     gray_scale = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-    return gray_scale
+
+    # Smooth it
+    blur = cv2.GaussianBlur(gray_scale, (11, 11), 0)
+    threshold = cv2.adaptiveThreshold(blur, 255, cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY, 11, 2, dst=outer_box)
+
+    cv2.bitwise_not(outer_box, outer_box)
+
+    kernel = np.ones((5, 5), np.uint8)
+
+    # Used to make the volume of the grid larger.
+    dilation = cv2.dilate(outer_box, kernel, iterations=1)
+
+
+    # return outer_box
+    return dilation
 
 
 def plot_images(img, img_final):
@@ -20,17 +37,21 @@ def plot_images(img, img_final):
 
 
 def draw_lines(img_final, lines):
+    # define position of horizontal line and vertical line
+    # pos_horizontal = 0
+    # pos_vertical = 0
+
     for line in lines:
         for rho, theta in line:
             a = np.cos(theta)
             b = np.sin(theta)
-            x0 = a*rho
-            y0 = b*rho
-            x1 = int(x0 + 1000 * (-b))
-            y1 = int(y0 + 1000 * (a))
-            x2 = int(x0 - 1000 * (-b))
-            y2 = int(y0 - 1000 * (a))
+            x0 = a * rho
+            y0 = b * rho
 
+            x1 = int(x0 + 10000 * (-b))
+            y1 = int(y0 + 10000 * (a))
+            x2 = int(x0 - 10000 * (-b))
+            y2 = int(y0 - 10000 * (a))
 
             cv2.line(img_final, (x1, y1), (x2, y2), (0, 0, 255), 3)
 
@@ -62,23 +83,24 @@ def draw_corners(input_image, corners, radius=5, colour=(0, 0, 255)):
     return img
 
 def main():
-    img = cv2.imread('playground/image18.jpg')
+    img = cv2.imread('playground/image1019.jpg')
 
-    processed_image = preprocess_image(img)
+    preprocessed_image = preprocess_image(img)
 
     # perform edge detection
-    edges = cv2.Canny(processed_image, 50, 150, apertureSize=3)
+    edges = cv2.Canny(preprocessed_image, 30, 60, apertureSize=3)
 
     # extract corner points from edges
     corners = get_corners_of_largest_poly(edges)
 
     # detect lines in the image using hough lines technique
-    lines = cv2.HoughLines(edges, 1, np.pi/180, 100)
+    # lines = cv2.HoughLines(edges, 2, np.pi/180, 300, 0)
 
     img_final = img.copy()
-    # marked_corners = draw_corners(img_final, corners)
-    draw_lines(img_final, lines)
-    plot_images(img, img_final)
+    marked_corners = draw_corners(img_final, corners)
+    # draw_lines(img_final, lines)
+    plot_images(img, marked_corners)
+
 
 if __name__ == '__main__':
     main()
