@@ -101,7 +101,9 @@ def extract_lines(img):
 
 
 def main():
-    img = cv2.imread('playground/image1019.jpg')
+    img = cv2.imread('playground/image1024.jpg')
+
+    # lines = cv2.HoughLines(edges, 1, np.pi / 180, 150)
 
     preprocessed_image = preprocess_image(img)
 
