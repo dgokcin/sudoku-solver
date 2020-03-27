@@ -100,8 +100,8 @@ def extract_lines(img):
     return img
 
 
-def main():
-    img = cv2.imread('playground/image1024.jpg')
+if __name__ == '__main__':
+    img = cv2.imread('playground/image1072.jpg')
 
     # lines = cv2.HoughLines(edges, 1, np.pi / 180, 150)
 
@@ -123,6 +123,3 @@ def main():
 
     plot_images(img, lines)
 
-
-if __name__ == '__main__':
-    main()

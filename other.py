@@ -1,5 +1,4 @@
 import cv2
-import operator
 import numpy as np
 from matplotlib import pyplot as plt
 
@@ -19,14 +18,12 @@ def preprocess_image(img):
     # Makes the boarders white
     cv2.bitwise_not(thresh, thresh)
 
-    # Dilate to connect back the disconnected parts
+    # Dilate with a plus shaped kernel to connect back the disconnected parts
     kernel = np.array([[0, 1, 0],
                        [1, 1, 1],
                        [0, 1, 0]], np.uint8)
 
     dilated = cv2.dilate(thresh, kernel)
-
-
 
     # plot_images(img, dilated)
     return dilated
@@ -40,27 +37,77 @@ def plot_images(img, img_final):
     plt.show()
 
 
-def find_biggest_blob(img):
+def get_corners(img):
+    contours, hire = cv2.findContours(img, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    contours = sorted(contours, key=lambda x: cv2.contourArea(x), reverse=True)
+    largest_contour = np.squeeze(contours[0])
 
-    count = 0
-    max = -1
+    sums = [sum(i) for i in largest_contour]
+    differences = [i[0] - i[1] for i in largest_contour]
 
-    for i in range((img.size)):
-        pass
+    top_left = np.argmin(sums)
+    top_right = np.argmax(differences)
+    bottom_left = np.argmax(sums)
+    bottom_right = np.argmin(differences)
 
-
-def main():
-    img = cv2.imread('playground/image1019.jpg')
-    original = img.copy()
-
-    # lines = cv2.HoughLines(edges, 1, np.pi / 180, 150)
-
-    preprocessed_image = preprocess_image(img)
-    blob = find_biggest_blob(preprocessed_image)
+    corners = [largest_contour[top_left], largest_contour[top_right], largest_contour[bottom_left],
+               largest_contour[bottom_right]]
+    return corners
 
 
-    # plot_images(original, img)
+def draw_corners(input_image, corners, radius=15, colour=(255, 0, 0)):
+    img = input_image.copy()
+    if len(colour) == 3:
+        if len(img.shape) == 2:
+            img = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
+        elif img.shape[2] == 1:
+            img = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
+
+    for point in corners:
+        img = cv2.circle(img, tuple(int(x) for x in point), radius, colour, -1)
+
+    return img
+
+
+def crop_sudoku_grid(img, corners):
+    roi = img[corners[0][1]:corners[2][1], corners[0][0]:corners[2][0]]
+    return roi
+
+
+def draw_lines(img):
+    # Use Canny edge detection and dilate the edges for better result.
+    edges = cv2.Canny(cropped, 50, 150, apertureSize=3)
+    kernel = np.ones((4, 4), np.uint8)
+    dilation = cv2.dilate(edges, kernel, iterations=1)
+
+    minLineLength = 350
+    maxLineGap = 10
+    lines = cv2.HoughLinesP(dilation, 1, np.pi / 180, 50, minLineLength, maxLineGap)
+    try:
+        for line in lines:
+            for x1, y1, x2, y2 in line:
+                cv2.line(img, (x1, y1), (x2, y2), (0, 255, 0), 2)
+    except TypeError:
+        print("Could not detect any lines. ")
+
+    return img
 
 
 if __name__ == '__main__':
-    main()
+    img = cv2.imread('playground/image25.jpg')
+    original = img.copy()
+
+    # Preprocess Image
+    preprocessed_image = preprocess_image(img)
+
+    # Extract corners of the largest polynomial
+    corners = get_corners(preprocessed_image)
+
+    # corners_drawn = draw_corners(original, corners)
+    cropped = crop_sudoku_grid(img, corners)
+
+    # apply
+    final = draw_lines(cropped)
+
+    plot_images(original, final)
+
