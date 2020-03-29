@@ -76,7 +76,7 @@ def crop_sudoku_grid(img, corners):
 
 def draw_lines(img):
     # Use Canny edge detection and dilate the edges for better result.
-    edges = cv2.Canny(cropped, 50, 150, apertureSize=3)
+    edges = cv2.Canny(img, 50, 150, apertureSize=3)
     kernel = np.ones((4, 4), np.uint8)
     dilation = cv2.dilate(edges, kernel, iterations=1)
 
@@ -94,7 +94,7 @@ def draw_lines(img):
 
 
 if __name__ == '__main__':
-    img = cv2.imread('playground/image25.jpg')
+    img = cv2.imread('playground/image1072.jpg')
     original = img.copy()
 
     # Preprocess Image
