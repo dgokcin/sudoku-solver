@@ -31,19 +31,6 @@ def plot_images(img, img_final):
     plt.show()
 
 
-# def get_corners_of_largest_poly(edges):
-#     contours, hierarchy = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-#     contours = sorted(contours, key=cv2.contourArea, reverse=True) #Sort by area, descending
-#     polygon = contours[0]  # get largest contour
-#
-#     bottom_right, _ = max(enumerate([pt[0][0] + pt[0][1] for pt in polygon]), key=operator.itemgetter(1))
-#     top_left, _ = min(enumerate([pt[0][0] + pt[0][1] for pt in polygon]), key=operator.itemgetter(1))
-#     bottom_left, _ = max(enumerate([pt[0][0] - pt[0][1] for pt in polygon]), key=operator.itemgetter(1))
-#     top_right, _ = min(enumerate([pt[0][0] - pt[0][1] for pt in polygon]), key=operator.itemgetter(1))
-#
-#     return [polygon[top_left][0], polygon[top_right][0], polygon[bottom_right][0], polygon[bottom_left][0]]
-
-
 def extract_lines(img):
     horizontal_lines = []
     vertical_lines = []
@@ -70,28 +57,28 @@ def extract_lines(img):
             y2 = int(y0 - 10000 * a)
 
             # Vertical if close to 180 or 0 degree.
-            # if theta < np.pi/20 or theta > np.pi - np.pi/20:
-            #     vertical_lines.append(Line(x1, y1, x2, y2))
-                # cv2.line(img, (x1, y1), (x2, y2), (0, 255, 0), 2)
+            if theta < np.pi/20 or theta > np.pi - np.pi/20:
+                vertical_lines.append(Line(x1, y1, x2, y2))
+                cv2.line(img, (x1, y1), (x2, y2), (0, 255, 0), 2)
 
             # Horizontal if close to 90 degree
-            # elif abs(theta - np.pi/2) < np.pi/20:
-            #     horizontal_lines.append(Line(x1, y1, x2, y2))
-                # cv2.line(img, (x1, y1), (x2, y2), (0, 0, 255), 2)
+            elif abs(theta - np.pi/2) < np.pi/20:
+                horizontal_lines.append(Line(x1, y1, x2, y2))
+                cv2.line(img, (x1, y1), (x2, y2), (0, 0, 255), 2)
 
 
-            if b > 0.5:
-                # needs to be a vertical line
-                if rho - pos_horizontal > 10:
-                    vertical_lines.append(Line(x1, y1, x2, y2))
-                    pos_horizontal = rho
-                    cv2.line(img, (x1, y1), (x2, y2), (0, 0, 255), 2)
-            else:
-                # horizontal line
-                if rho - pos_vertical > 10:
-                    horizontal_lines.append(Line(x1, y1, x2, y2))
-                    pos_vertical = rho
-                    cv2.line(img, (x1, y1), (x2, y2), (0, 0, 255), 2)
+            # if b > 0.5:
+            #     # needs to be a vertical line
+            #     if rho - pos_horizontal > 10:
+            #         vertical_lines.append(Line(x1, y1, x2, y2))
+            #         pos_horizontal = rho
+            #         cv2.line(img, (x1, y1), (x2, y2), (0, 0, 255), 2)
+            # else:
+            #     # horizontal line
+            #     if rho - pos_vertical > 10:
+            #         horizontal_lines.append(Line(x1, y1, x2, y2))
+            #         pos_vertical = rho
+            #         cv2.line(img, (x1, y1), (x2, y2), (0, 0, 255), 2)
 
     # for h_line in horizontal_lines:
     #     for v_line in vertical_lines:
@@ -102,6 +89,7 @@ def extract_lines(img):
 
 if __name__ == '__main__':
     img = cv2.imread('playground/image1072.jpg')
+    original = img.copy()
 
     # lines = cv2.HoughLines(edges, 1, np.pi / 180, 150)
 
@@ -110,7 +98,7 @@ if __name__ == '__main__':
     lines = extract_lines(preprocessed_image)
 
     # perform edge detection
-    # edges = cv2.Canny(preprocessed_image, 30, 60, apertureSize=3)
+    edges = cv2.Canny(preprocessed_image, 30, 60, apertureSize=3)
 
     # extract corner points from edges
     # corners = get_corners_of_largest_poly(edges)
@@ -121,5 +109,5 @@ if __name__ == '__main__':
     # img_final = img.copy()
     # marked_corners = draw_corners(img_final, corners)
 
-    plot_images(img, lines)
+    plot_images(original, lines)
 

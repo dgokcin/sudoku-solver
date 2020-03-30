@@ -81,7 +81,7 @@ def draw_lines(img):
     dilation = cv2.dilate(edges, kernel, iterations=1)
 
     minLineLength = 350
-    maxLineGap = 10
+    maxLineGap = 20
     lines = cv2.HoughLinesP(dilation, 1, np.pi / 180, 50, minLineLength, maxLineGap)
     try:
         for line in lines:
@@ -104,10 +104,10 @@ if __name__ == '__main__':
     corners = get_corners(preprocessed_image)
 
     # corners_drawn = draw_corners(original, corners)
-    cropped = crop_sudoku_grid(img, corners)
+    # cropped = crop_sudoku_grid(img, corners)
 
     # apply
-    final = draw_lines(cropped)
+    final = draw_lines(img)
 
     plot_images(original, final)
 
