@@ -3,12 +3,12 @@ import numpy as np
 from matplotlib import pyplot as plt
 
 
-
 def preprocess_image(img):
     # Convert the image to gray-scale
     gray_scale = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
     # Smooth it
+    # blured_gray = cv2.GaussianBlur(gray_scale, (3, 3), 0)
     blured_gray = cv2.GaussianBlur(gray_scale, (11, 11), 0)
 
 
@@ -25,21 +25,25 @@ def preprocess_image(img):
 
     dilated = cv2.dilate(thresh, kernel)
 
-    # plot_images(img, dilated)
+    # plot_images(blured_gray, thresh, dilated)
     return dilated
 
 
-def plot_images(img, img_final):
-    plt.subplot(121), plt.imshow(img), plt.title('original')
+def plot_images(img, img_cst, img_final):
+    plt.subplot(131), plt.imshow(img), plt.title('original')
     plt.xticks([]), plt.yticks([])
-    plt.subplot(122), plt.imshow(img_final, cmap='gray'), plt.title('final')
+    plt.subplot(132), plt.imshow(img_cst, cmap='gray'), plt.title('before '
+                                                                  'hough')
+    plt.xticks([]), plt.yticks([])
+    plt.subplot(133), plt.imshow(img_final, cmap='gray'), plt.title('final')
     plt.xticks([]), plt.yticks([])
     plt.show()
 
 
 def get_corners(img):
     contours, hire = cv2.findContours(img, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-    contours = sorted(contours, key=lambda x: cv2.contourArea(x), reverse=True)
+    contours = sorted(contours, key=lambda x: cv2.contourArea(x),
+                       reverse=True)
     largest_contour = np.squeeze(contours[0])
 
     sums = [sum(i) for i in largest_contour]
@@ -50,7 +54,8 @@ def get_corners(img):
     bottom_left = np.argmax(sums)
     bottom_right = np.argmin(differences)
 
-    corners = [largest_contour[top_left], largest_contour[top_right], largest_contour[bottom_left],
+    corners = [largest_contour[top_left], largest_contour[top_right],
+               largest_contour[bottom_left],
                largest_contour[bottom_right]]
     return corners
 
@@ -82,6 +87,7 @@ def draw_lines(img):
 
     minLineLength = 350
     maxLineGap = 20
+
     lines = cv2.HoughLinesP(dilation, 1, np.pi / 180, 50, minLineLength, maxLineGap)
     try:
         for line in lines:
@@ -93,21 +99,49 @@ def draw_lines(img):
     return img
 
 
+def extract_rectangles(img, image):
+    contours, hire = cv2.findContours(img, cv2.RETR_TREE,
+                                      cv2.CHAIN_APPROX_SIMPLE)
+
+    c = 0
+    for i in contours:
+        area = cv2.contourArea(i)
+        if area > 1000 / 2:
+            cv2.drawContours(image, contours, c, (0, 255, 0), 3)
+        c += 1
+
+    # plot_images(original, img, original)
+    return image
+
+
+
 if __name__ == '__main__':
-    img = cv2.imread('playground/image1072.jpg')
-    original = img.copy()
+    # images = ['playground/image1072.jpg', 'playground/image1024.jpg',
+    #           'playground/image31.jpg']
 
-    # Preprocess Image
-    preprocessed_image = preprocess_image(img)
+    images = ['playground/image1019.jpg']
 
-    # Extract corners of the largest polynomial
-    corners = get_corners(preprocessed_image)
+    for image in images:
+        img = cv2.imread(image)
+        original = img.copy()
 
-    # corners_drawn = draw_corners(original, corners)
-    # cropped = crop_sudoku_grid(img, corners)
+        # Preprocess Image
+        preprocessed_image = preprocess_image(img)
 
-    # apply
-    final = draw_lines(img)
+        # Extract corners of the largest polynomial
+        corners = get_corners(preprocessed_image)
 
-    plot_images(original, final)
+        # corners_drawn = draw_corners(original, corners)
+        cropped = crop_sudoku_grid(img, corners)
+
+        rectangles = extract_rectangles(preprocessed_image, original)
+        cropped = crop_sudoku_grid(rectangles, corners)
+
+
+
+
+        # apply
+        # final = draw_lines(cropped)
+
+        plot_images(original, rectangles, cropped)
 
