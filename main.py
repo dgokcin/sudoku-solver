@@ -1,16 +1,18 @@
+# Deniz Gokcin S021834 Department of Computer Science
 import cv2
 import os, fnmatch
 import numpy as np
 from matplotlib import pyplot as plt
 
 
-def get_list_of_files(dir):
+#   Extracts all the .jpg files in a directory and returns it as a list.
+def get_list_of_files(directory_name):
     jpg_files = []
-    all_files = os.listdir(dir)
+    all_files = os.listdir(directory_name)
     pattern = "*.jpg"
     for entry in all_files:
         if fnmatch.fnmatch(entry, pattern):
-            jpg_files.append(os.path.join(dir, entry))
+            jpg_files.append(os.path.join(directory_name, entry))
 
     return jpg_files
 
@@ -30,6 +32,7 @@ def plot_images(img1, img2, img3, title1='', title2='', title3=''):
     plt.show()
 
 
+#   Plots a single image
 def plot_single_image(img, title=''):
     plt.subplot(111), plt.imshow(img), plt.title(title)
     plt.xticks([]), plt.yticks([])
@@ -46,8 +49,8 @@ def plot_original_final(original, final):
 
 
 if __name__ == '__main__':
-    images = get_list_of_files('v2_test')
-    # images = get_list_of_files('playground')
+    # images = get_list_of_files('v2_test')
+    images = get_list_of_files('playground')
     # images = ['playground/image1019.jpg', 'playground/image18.jpg']
     # images = ['playground/image1019.jpg']
 
