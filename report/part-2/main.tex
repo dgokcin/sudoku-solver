@@ -20,6 +20,9 @@
 \usepackage{listings}
 \usepackage{xcolor}
 \usepackage{lipsum}
+\usepackage{array}
+\usepackage{multirow}
+\usepackage{caption}
 
 \definecolor{codegreen}{rgb}{0,0.6,0}
 \definecolor{codegray}{rgb}{0.5,0.5,0.5}
@@ -43,6 +46,14 @@
     showstringspaces=false,
     showtabs=false,
     tabsize=4
+}
+
+\newcommand\MyBox[2]{
+  \fbox{\lower0.75cm
+    \vbox to 1.7cm{\vfil
+      \hbox to 1.7cm{\hfil\parbox{1.4cm}{#1\\#2}\hfil}
+      \vfil}%
+  }%
 }
 
 \lstset{style=mystyle}
