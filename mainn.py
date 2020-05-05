@@ -10,6 +10,7 @@ import cv2
 import os
 
 import operator
+import pandas as pd
 import matplotlib.pyplot as plt
 from mnist import MNIST
 
@@ -19,6 +20,27 @@ img_size = 28
 no_of_labels = 10
 image_pixels = img_size * img_size
 data_path = MNIST(os.path.join(os.path.dirname(__file__), "mnist"))
+
+# Helper functions
+def calculate_confusion_matrix(y_actual, y_predicted):
+    df_confusion = pd.crosstab(y_actual, y_predicted,
+                               rownames=['Actual'],
+                               colnames=['Predicted'],
+                               margins=True)
+    # print(df_confusion)
+    return df_confusion
+
+
+def plot_confusion_matrix(df_confusion, title='Confusion matrix', cmap=plt.cm.gray_r):
+    plt.matshow(df_confusion, cmap=cmap)
+    plt.title(title)
+    plt.colorbar()
+    tick_marks = np.arange(len(df_confusion.columns))
+    plt.xticks(tick_marks, df_confusion.columns, rotation=45)
+    plt.yticks(tick_marks, df_confusion.index)
+    plt.ylabel(df_confusion.index.name)
+    plt.xlabel(df_confusion.columns.name)
+    plt.show()
 
 
 def euclidean_distance(vector1, vector2):
@@ -62,6 +84,7 @@ def kNN_test(X_train, X_test, Y_train, Y_test, k):
         output = get_neighbours(X_train, X_test[i], k)
         predictedClass = predictkNNClass(output, Y_train)
         output_classes.append(predictedClass)
+        print(i)
     return output_classes
 
 
@@ -175,13 +198,18 @@ if __name__ == "__main__":
     predicted_classes = {}
     final_accuracies = {}
 
-    for k in range(1, 15):
-        predicted_classes[k] = kNN_test(train_pca[:30000], test_pca[:100],
-                                        train_labels[:30000],
-                                        test_labels[:100], k)
-        final_accuracies[k] = prediction_accuracy(predicted_classes[k],
-                                                  test_labels[:100])
-
+    # for k in range(1, 15):
+    #     predicted_classes[k] = kNN_test(train_pca[:30000], test_pca[:100],
+    #                                     train_labels[:30000],
+    #                                     test_labels, k)
+    #     final_accuracies[k] = prediction_accuracy(predicted_classes[k],
+    #                                               test_labels)
+    k = 3
+    predicted_classes[k] = kNN_test(train_pca[:30000], test_pca,
+                                    train_labels[:30000],
+                                    test_labels, k)
+    final_accuracies[k] = prediction_accuracy(predicted_classes[k],
+                                              test_labels)
     plt.figure(figsize=(15, 6))
     plt.plot(list(final_accuracies.keys()), list(final_accuracies.values()))
     plt.xticks(list(final_accuracies.keys()))
@@ -194,6 +222,19 @@ if __name__ == "__main__":
     print("highest accuracy is hit with: " +
           str(max_accuracy_key) + " nearest neighbors with accuracy:"
           + str(final_accuracies[max_accuracy_key]))
+
+    # Confusion Matrix
+    y_actu = pd.Series(list(test_labels), name='Actual')
+    y_pred = pd.Series(predicted_classes[k], name='Predicted')
+    df_confusion = pd.crosstab(y_actu, y_pred, rownames=['Actual'],
+                               colnames=['Predicted'], margins=True)
+
+    print(df_confusion)
+    plot_confusion_matrix(df_confusion)
+
+
+
+    # plot_confusion_matrix(cnf)
 
     # Sudoku Experiments:
 
