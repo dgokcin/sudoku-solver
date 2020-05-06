@@ -190,7 +190,7 @@ if __name__ == "__main__":
     train_images, train_labels = data_path.load_training()
     test_images, test_labels = data_path.load_testing()
 
-    n_components = 18
+    n_components = 25
     pcs = pca(train_images)
     train_pca = project_onto_PC(train_images, pcs, n_components)
     test_pca = project_onto_PC(test_images, pcs, n_components)
@@ -219,8 +219,9 @@ if __name__ == "__main__":
     #     final_accuracies[k] = prediction_accuracy(predicted_classes[k],
     #                                               test_labels)
 
-    k = 4
+    k = 6
 
+    # works fast but not allowed
     model = KNeighborsClassifier(n_neighbors=k)
     model.fit(train_pca, train_labels)
     preds = model.predict(test_pca)
@@ -231,19 +232,17 @@ if __name__ == "__main__":
 
 
     # works slow
-    # predicted_classes[k] = kNN_test(train_pca[:30000], test_pca,
+    # predicted_classes[k] = kNN_test(train_pca[:30000], test_pca[:100],
     #                                 train_labels[:30000],
-    #                                 test_labels, k)
+    #                                 test_labels[:100], k)
     # final_accuracies[k] = prediction_accuracy(predicted_classes[k],
-    #                                           test_labels)
+    #                                           test_labels[:100])
 
     plt.figure(figsize=(15, 6))
     plt.plot(list(final_accuracies.keys()), list(final_accuracies.values()))
     plt.xticks(list(final_accuracies.keys()))
     plt.xlabel("k")
     plt.ylabel("Accuracy")
-    plt.title(
-        "Plot of the prediction accuracy of KNN Classifier as a function of k (Number of Neighbours)")
     plt.show()
     max_accuracy_key = max(final_accuracies, key=final_accuracies.get)
     print("highest accuracy is hit with: " +
@@ -257,7 +256,7 @@ if __name__ == "__main__":
                                colnames=['Predicted'], margins=True)
 
     print(df_confusion)
-    plot_confusion_matrix(df_confusion)
+    df_confusion.to_latex('asd.tex')
 
 
 
