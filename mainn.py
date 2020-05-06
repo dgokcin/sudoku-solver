@@ -14,6 +14,9 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from mnist import MNIST
 
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.metrics import classification_report
+
 # define your own functions here, Including MNIST and the functions from
 # your previous assignment:
 img_size = 28
@@ -55,7 +58,7 @@ def get_neighbours(X_train, X_test_instance, k):
     distances = []
     neighbors = []
     for i in range(0, X_train.shape[0]):
-        dist = absolute_distance(X_train[i], X_test_instance)
+        dist = euclidean_distance(X_train[i], X_test_instance)
         distances.append((i, dist))
     distances.sort(key=operator.itemgetter(1))
     for x in range(k):
@@ -198,18 +201,42 @@ if __name__ == "__main__":
     predicted_classes = {}
     final_accuracies = {}
 
+    # for finding the best neighbor manually
     # for k in range(1, 15):
     #     predicted_classes[k] = kNN_test(train_pca[:30000], test_pca[:100],
     #                                     train_labels[:30000],
     #                                     test_labels, k)
     #     final_accuracies[k] = prediction_accuracy(predicted_classes[k],
     #                                               test_labels)
-    k = 3
-    predicted_classes[k] = kNN_test(train_pca[:30000], test_pca,
-                                    train_labels[:30000],
-                                    test_labels, k)
+
+
+    # for finding the best neighbor with sckit
+    # for k in range(1, 15):
+    #     model = KNeighborsClassifier(n_neighbors=k)
+    #     model.fit(train_pca, train_labels)
+    #     preds = model.predict(test_pca)
+    #     predicted_classes[k] = model.predict(test_pca)
+    #     final_accuracies[k] = prediction_accuracy(predicted_classes[k],
+    #                                               test_labels)
+
+    k = 4
+
+    model = KNeighborsClassifier(n_neighbors=k)
+    model.fit(train_pca, train_labels)
+    preds = model.predict(test_pca)
+    predicted_classes[k] = model.predict(test_pca)
     final_accuracies[k] = prediction_accuracy(predicted_classes[k],
                                               test_labels)
+
+
+
+    # works slow
+    # predicted_classes[k] = kNN_test(train_pca[:30000], test_pca,
+    #                                 train_labels[:30000],
+    #                                 test_labels, k)
+    # final_accuracies[k] = prediction_accuracy(predicted_classes[k],
+    #                                           test_labels)
+
     plt.figure(figsize=(15, 6))
     plt.plot(list(final_accuracies.keys()), list(final_accuracies.values()))
     plt.xticks(list(final_accuracies.keys()))
