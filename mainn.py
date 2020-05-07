@@ -100,6 +100,41 @@ def prediction_accuracy(predicted_labels, original_labels):
     return float(count) / len(predicted_labels)
 
 
+def compute_distances(X, X_train):
+    """
+    Compute the distance between each test point in X and each training point
+    in self.X_train using no explicit loops.
+    Input / Output: Same as compute_distances_two_loops
+    """
+    num_test = X.shape[0]
+    num_train = X_train.shape[0]
+    dists = np.zeros((num_test, num_train))
+    dists = np.reshape(np.sum(X**2, axis=1), [num_test,1]) + np.sum(X_train**2, axis=1) \
+            - 2 * np.matmul(X, X_train.T)
+    dists = np.sqrt(dists)
+    return dists
+
+def predict_labels(dists, y_train, k=1):
+    """
+    Given a matrix of distances between test points and training points,
+    predict a label for each test point.
+    Inputs:
+    - dists: A numpy array of shape (num_test, num_train) where dists[i, j]
+      gives the distance betwen the ith test point and the jth training point.
+    Returns:
+    - y: A numpy array of shape (num_test,) containing predicted labels for the
+      test data, where y[i] is the predicted label for the test point X[i].
+    """
+    num_test = dists.shape[0]
+    y_pred = np.zeros(num_test)
+    for i in range(num_test):
+        closest_y = []
+        closest_y = y_train[np.argsort(dists[i])][0:k]
+        y_pred[i] = np.bincount(closest_y).argmax()
+
+    return y_pred
+
+
 def center_data(X):
     """
     Returns a centered version of the data, where each feature now has mean = 0
@@ -187,76 +222,114 @@ def sudokuAcc(gt, out):
 if __name__ == "__main__":
 
     # MNIST experiments:
-    train_images, train_labels = data_path.load_training()
-    test_images, test_labels = data_path.load_testing()
+    train_images, y_train = data_path.load_training()
+    test_images, y_test = data_path.load_testing()
 
     n_components = 25
     pcs = pca(train_images)
-    train_pca = project_onto_PC(train_images, pcs, n_components)
-    test_pca = project_onto_PC(test_images, pcs, n_components)
+    X_train = project_onto_PC(train_images, pcs, n_components)
+    X_test = project_onto_PC(test_images, pcs, n_components)
 
-    # plot_PC(train_images[:1000], pcs, train_labels[:1000])
-    plot_PC(train_images, pcs, train_labels)
+    # Convert to numpy arrays
+    y_train = np.asarray(y_train)
+    y_test = np.asarray(y_test)
 
-    predicted_classes = {}
-    final_accuracies = {}
+    print('Training data shape: ', X_train.shape)
+    print('Training labels shape: ', y_train.shape)
+    print('Test data shape: ', X_test.shape)
+    print('Test labels shape: ', y_test.shape)
+
+    # plot_PC(train_images, pcs, y_train)
+
+
+    # Mask for debugging purposes...
+    num_training = 60000
+    # num_training = 1000
+    mask = list(range(num_training))
+    X_train = X_train[mask]
+    y_train = y_train[mask]
+
+    num_test = 10000
+    # num_test = 100
+    mask = list(range(num_test))
+    X_test = X_test[mask]
+    y_test = y_test[mask]
+
+    print('Training data shape after mask: ', X_train.shape)
+    print('Training labels shape after mask: ', y_train.shape)
+    print('Test data shape after mask: ', X_test.shape)
+    print('Test labels shape after mask: ', y_test.shape)
+
+    # Reshape the image data into rows
+    X_train = np.reshape(X_train, (X_train.shape[0], -1))
+    X_test = np.reshape(X_test, (X_test.shape[0], -1))
+    print(X_train.shape, X_test.shape)
+
+    dists = compute_distances(X_test, X_train)
+    y_test_pred = predict_labels(dists, y_train, k=1)
+
+    # Compute and print the fraction of correctly predicted examples
+    num_correct = np.sum(y_test_pred == y_test)
+    accuracy = float(num_correct) / num_test
+    print('Got %d / %d correct => accuracy: %f' % (
+    num_correct, num_test, accuracy))
 
     # for finding the best neighbor manually
     # for k in range(1, 15):
-    #     predicted_classes[k] = kNN_test(train_pca[:30000], test_pca[:100],
-    #                                     train_labels[:30000],
-    #                                     test_labels, k)
+    #     predicted_classes[k] = kNN_test(X_train[:30000], X_test[:100],
+    #                                     y_train[:30000],
+    #                                     y_test, k)
     #     final_accuracies[k] = prediction_accuracy(predicted_classes[k],
-    #                                               test_labels)
+    #                                               y_test)
 
 
     # for finding the best neighbor with sckit
     # for k in range(1, 15):
     #     model = KNeighborsClassifier(n_neighbors=k)
-    #     model.fit(train_pca, train_labels)
-    #     preds = model.predict(test_pca)
-    #     predicted_classes[k] = model.predict(test_pca)
+    #     model.fit(X_train, y_train)
+    #     preds = model.predict(X_test)
+    #     predicted_classes[k] = model.predict(X_test)
     #     final_accuracies[k] = prediction_accuracy(predicted_classes[k],
-    #                                               test_labels)
+    #                                               y_test)
 
-    k = 6
+    # k = 6
 
     # works fast but not allowed
-    model = KNeighborsClassifier(n_neighbors=k)
-    model.fit(train_pca, train_labels)
-    preds = model.predict(test_pca)
-    predicted_classes[k] = model.predict(test_pca)
-    final_accuracies[k] = prediction_accuracy(predicted_classes[k],
-                                              test_labels)
+    # model = KNeighborsClassifier(n_neighbors=k)
+    # model.fit(X_train, y_train)
+    # preds = model.predict(X_test)
+    # predicted_classes[k] = model.predict(X_test)
+    # final_accuracies[k] = prediction_accuracy(predicted_classes[k],
+    #                                           y_test)
 
 
 
     # works slow
-    # predicted_classes[k] = kNN_test(train_pca[:30000], test_pca[:100],
-    #                                 train_labels[:30000],
-    #                                 test_labels[:100], k)
+    # predicted_classes[k] = kNN_test(X_train[:30000], X_test[:100],
+    #                                 y_train[:30000],
+    #                                 y_test[:100], k)
     # final_accuracies[k] = prediction_accuracy(predicted_classes[k],
-    #                                           test_labels[:100])
+    #                                           y_test[:100])
 
-    plt.figure(figsize=(15, 6))
-    plt.plot(list(final_accuracies.keys()), list(final_accuracies.values()))
-    plt.xticks(list(final_accuracies.keys()))
-    plt.xlabel("k")
-    plt.ylabel("Accuracy")
-    plt.show()
-    max_accuracy_key = max(final_accuracies, key=final_accuracies.get)
-    print("highest accuracy is hit with: " +
-          str(max_accuracy_key) + " nearest neighbors with accuracy:"
-          + str(final_accuracies[max_accuracy_key]))
-
-    # Confusion Matrix
-    y_actu = pd.Series(list(test_labels), name='Actual')
-    y_pred = pd.Series(predicted_classes[k], name='Predicted')
-    df_confusion = pd.crosstab(y_actu, y_pred, rownames=['Actual'],
-                               colnames=['Predicted'], margins=True)
-
-    print(df_confusion)
-    df_confusion.to_latex('asd.tex')
+    # plt.figure(figsize=(15, 6))
+    # plt.plot(list(final_accuracies.keys()), list(final_accuracies.values()))
+    # plt.xticks(list(final_accuracies.keys()))
+    # plt.xlabel("k")
+    # plt.ylabel("Accuracy")
+    # plt.show()
+    # max_accuracy_key = max(final_accuracies, key=final_accuracies.get)
+    # print("highest accuracy is hit with: " +
+    #       str(max_accuracy_key) + " nearest neighbors with accuracy:"
+    #       + str(final_accuracies[max_accuracy_key]))
+    #
+    # # Confusion Matrix
+    # y_actu = pd.Series(list(y_test), name='Actual')
+    # y_pred = pd.Series(predicted_classes[k], name='Predicted')
+    # df_confusion = pd.crosstab(y_actu, y_pred, rownames=['Actual'],
+    #                            colnames=['Predicted'], margins=True)
+    #
+    # print(df_confusion)
+    # df_confusion.to_latex('asd.tex')
 
 
 
