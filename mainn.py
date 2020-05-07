@@ -222,24 +222,26 @@ def sudokuAcc(gt, out):
 if __name__ == "__main__":
 
     # MNIST experiments:
-    train_images, y_train = data_path.load_training()
-    test_images, y_test = data_path.load_testing()
+    train_images, train_labels = data_path.load_training()
+    test_images, test_labels = data_path.load_testing()
 
     n_components = 25
     pcs = pca(train_images)
+
+    # Dimensionality reduction
     X_train = project_onto_PC(train_images, pcs, n_components)
     X_test = project_onto_PC(test_images, pcs, n_components)
 
-    # Convert to numpy arrays
-    y_train = np.asarray(y_train)
-    y_test = np.asarray(y_test)
+    # Convert the labels to numpy arrays
+    y_train = np.asarray(train_labels)
+    y_test = np.asarray(test_labels)
 
-    print('Training data shape: ', X_train.shape)
-    print('Training labels shape: ', y_train.shape)
-    print('Test data shape: ', X_test.shape)
-    print('Test labels shape: ', y_test.shape)
+    # print('Training data shape: ', X_train.shape)
+    # print('Training labels shape: ', y_train.shape)
+    # print('Test data shape: ', X_test.shape)
+    # print('Test labels shape: ', y_test.shape)
 
-    # plot_PC(train_images, pcs, y_train)
+    plot_PC(train_images, pcs, y_train)
 
 
     # Mask for debugging purposes...
@@ -255,85 +257,66 @@ if __name__ == "__main__":
     X_test = X_test[mask]
     y_test = y_test[mask]
 
-    print('Training data shape after mask: ', X_train.shape)
-    print('Training labels shape after mask: ', y_train.shape)
-    print('Test data shape after mask: ', X_test.shape)
-    print('Test labels shape after mask: ', y_test.shape)
+    # print('Training data shape after mask: ', X_train.shape)
+    # print('Training labels shape after mask: ', y_train.shape)
+    # print('Test data shape after mask: ', X_test.shape)
+    # print('Test labels shape after mask: ', y_test.shape)
 
     # Reshape the image data into rows
     X_train = np.reshape(X_train, (X_train.shape[0], -1))
     X_test = np.reshape(X_test, (X_test.shape[0], -1))
     print(X_train.shape, X_test.shape)
 
+    # Compute the distances and store them in dists.
     dists = compute_distances(X_test, X_train)
-    y_test_pred = predict_labels(dists, y_train, k=1)
 
-    # Compute and print the fraction of correctly predicted examples
+    final_accuracies = {}
+    predicted_classes = {}
+
+    # for discovering the best k, should be done once
+    # for k in range(1, 10):
+    #     y_test_pred = predict_labels(dists, y_train, k=k)
+    #     num_correct = np.sum(y_test_pred == y_test)
+    #     accuracy = float(num_correct) / num_test
+    #
+    #     final_accuracies[k] = accuracy
+    #     predicted_classes[k] = y_test_pred
+    #
+    #     print('With %d neighbours, Got %d / %d correct => accuracy: %f' % (
+    #         k, num_correct, num_test, accuracy))
+
+    # Hardcoded best result
+    k = 6
+
+    y_test_pred = predict_labels(dists, y_train, k=k)
     num_correct = np.sum(y_test_pred == y_test)
     accuracy = float(num_correct) / num_test
-    print('Got %d / %d correct => accuracy: %f' % (
-    num_correct, num_test, accuracy))
 
-    # for finding the best neighbor manually
-    # for k in range(1, 15):
-    #     predicted_classes[k] = kNN_test(X_train[:30000], X_test[:100],
-    #                                     y_train[:30000],
-    #                                     y_test, k)
-    #     final_accuracies[k] = prediction_accuracy(predicted_classes[k],
-    #                                               y_test)
+    final_accuracies[k] = accuracy
+    predicted_classes[k] = y_test_pred
+
+    print('With %d neighbours, Got %d / %d correct => accuracy: %f' % (
+        k, num_correct, num_test, accuracy))
 
 
-    # for finding the best neighbor with sckit
-    # for k in range(1, 15):
-    #     model = KNeighborsClassifier(n_neighbors=k)
-    #     model.fit(X_train, y_train)
-    #     preds = model.predict(X_test)
-    #     predicted_classes[k] = model.predict(X_test)
-    #     final_accuracies[k] = prediction_accuracy(predicted_classes[k],
-    #                                               y_test)
-
-    # k = 6
-
-    # works fast but not allowed
-    # model = KNeighborsClassifier(n_neighbors=k)
-    # model.fit(X_train, y_train)
-    # preds = model.predict(X_test)
-    # predicted_classes[k] = model.predict(X_test)
-    # final_accuracies[k] = prediction_accuracy(predicted_classes[k],
-    #                                           y_test)
+    max_accuracy_key = max(final_accuracies, key=final_accuracies.get)
+    print("highest accuracy is hit with: " +
+          str(max_accuracy_key) + " nearest neighbors with accuracy:"
+          + str(final_accuracies[max_accuracy_key]))
 
 
+    # Confusion Matrix
+    y_actu = pd.Series(list(y_test), name='Actual')
+    y_pred = pd.Series(predicted_classes[max_accuracy_key], name='Predicted')
+    df_confusion = pd.crosstab(y_actu, y_pred, rownames=['Actual'],
+                               colnames=['Predicted'], margins=True)
 
-    # works slow
-    # predicted_classes[k] = kNN_test(X_train[:30000], X_test[:100],
-    #                                 y_train[:30000],
-    #                                 y_test[:100], k)
-    # final_accuracies[k] = prediction_accuracy(predicted_classes[k],
-    #                                           y_test[:100])
+    print(df_confusion)
 
-    # plt.figure(figsize=(15, 6))
-    # plt.plot(list(final_accuracies.keys()), list(final_accuracies.values()))
-    # plt.xticks(list(final_accuracies.keys()))
-    # plt.xlabel("k")
-    # plt.ylabel("Accuracy")
-    # plt.show()
-    # max_accuracy_key = max(final_accuracies, key=final_accuracies.get)
-    # print("highest accuracy is hit with: " +
-    #       str(max_accuracy_key) + " nearest neighbors with accuracy:"
-    #       + str(final_accuracies[max_accuracy_key]))
-    #
-    # # Confusion Matrix
-    # y_actu = pd.Series(list(y_test), name='Actual')
-    # y_pred = pd.Series(predicted_classes[k], name='Predicted')
-    # df_confusion = pd.crosstab(y_actu, y_pred, rownames=['Actual'],
-    #                            colnames=['Predicted'], margins=True)
-    #
-    # print(df_confusion)
-    # df_confusion.to_latex('asd.tex')
+    # Save the confusion matrix as latex to include in the report
+    df_confusion.to_latex('confusion_matrix.tex')
 
 
-
-    # plot_confusion_matrix(cnf)
 
     # Sudoku Experiments:
 
