@@ -298,12 +298,12 @@ def SudokuDigitDetector(img, eigen_vector):
 
     # Preprocess for digit extraction
     gray = cv2.cvtColor(cropped, cv2.COLOR_BGR2GRAY)
+
     blur = cv2.GaussianBlur(gray, (5, 5), 0)
     threshold = cv2.adaptiveThreshold(blur, 255, 1, 1, 51, 2)
 
     square_size = 28 * 9
     resized_img = cv2.resize(threshold, (square_size, square_size))
-    plot_original_final(original, resized_img)
     # rotated_images = [resized_img]
     #
     # for i in range(3):
@@ -318,11 +318,17 @@ def SudokuDigitDetector(img, eigen_vector):
             piece = resized_img[j: j + 28, k: k + 28]
             piece_res = np.resize(piece[2:26, 2:26], (28, 28))
             flatten_piece = piece_res.flatten()
-            flatten_piece_float = np.zeros(len(flatten_piece), np.float32)
-            for l in range(len(flatten_piece)):
-                flatten_piece_float[l] = (flatten_piece[l] / 255.)
-            pieces.append(np.dot(flatten_piece_float, eigen_vector))
-    piece_by_piece_images.append(pieces)
+            pieces.append(project_onto_PC(flatten_piece, eigen_vector, n_components))
+
+    # PCA Stuff
+    reducted_image = reconstruct_PC(pieces[0], eigen_vector,
+                                    n_components, train_images)
+
+    # dists = compute_distances(pieces, X_train)
+    # plot_images(reducted_image)
+    print("asd")
+
+
 
 
 
@@ -404,6 +410,8 @@ if __name__ == "__main__":
     # # Compute the distances and store them in dists.
     print('Computing Distances...')
     dists = compute_distances(X_test, X_train)
+    # dists = compute_distances(pieces, X_train)
+
     #
     final_accuracies = {}
     predicted_classes = {}
