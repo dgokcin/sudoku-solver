@@ -4,6 +4,7 @@
 # -Scratch/blob/master/part1/main.py
 # https://jakevdp.github.io/PythonDataScienceHandbook/05.09-principal\
 #          -component-analysis.html
+import math
 import operator
 
 import numpy as np
@@ -141,6 +142,30 @@ def plot_PC(X, pcs, labels):
     ax.set_ylabel('PC 2')
     plt.show()
 
+def reconstruct_PC(x_pca, pcs, n_components, X):
+    """
+    Given the principal component vectors as the columns of matrix pcs,
+    this function reconstructs a single image from its principal component
+    representation, x_pca.
+    X = the original data to which PCA was applied to get pcs.
+    """
+    feature_means = X - center_data(X)
+    feature_means = feature_means[0, :]
+    x_reconstructed = np.dot(x_pca, pcs[:, range(n_components)].T) + feature_means
+    return x_reconstructed
+
+def plot_images(X):
+    if X.ndim == 1:
+        X = np.array([X])
+    num_images = X.shape[0]
+    num_rows = math.floor(math.sqrt(num_images))
+    num_cols = math.ceil(num_images/num_rows)
+    for i in range(num_images):
+        reshaped_image = X[i,:].reshape(28,28)
+        plt.subplot(num_rows, num_cols, i+1)
+        plt.imshow(reshaped_image, cmap=plt.cm.get_cmap('Greys_r', 10))
+        plt.axis('off')
+    plt.show()
 
 # Helper functions for sudoku stuff
 # Plots the original image next to the processed image
@@ -221,7 +246,7 @@ def draw_corners(input_image, corners, radius=15, colour=(255, 0, 0)):
     return img
 
 
-def SudokuDigitDetector(img):
+def SudokuDigitDetector(img, eigen_vector):
 
     original = img.copy()
 
@@ -271,6 +296,40 @@ def SudokuDigitDetector(img):
     # Apply 4-point transform and wrap
     cropped = crop_and_warp(original, corners)
 
+    # Preprocess for digit extraction
+    gray = cv2.cvtColor(cropped, cv2.COLOR_BGR2GRAY)
+    blur = cv2.GaussianBlur(gray, (5, 5), 0)
+    threshold = cv2.adaptiveThreshold(blur, 255, 1, 1, 51, 2)
+
+    square_size = 28 * 9
+    resized_img = cv2.resize(threshold, (square_size, square_size))
+    plot_original_final(original, resized_img)
+    # rotated_images = [resized_img]
+    #
+    # for i in range(3):
+    #     rotated_image = np.rot90(rotated_images[i])
+    #     rotated_images.append(rotated_image)
+    #
+    piece_by_piece_images = []
+    # for i in range(len(rotated_images)):
+    pieces = []
+    for j in range(0, len(resized_img), 28):
+        for k in range(0, len(resized_img), 28):
+            piece = resized_img[j: j + 28, k: k + 28]
+            piece_res = np.resize(piece[2:26, 2:26], (28, 28))
+            flatten_piece = piece_res.flatten()
+            flatten_piece_float = np.zeros(len(flatten_piece), np.float32)
+            for l in range(len(flatten_piece)):
+                flatten_piece_float[l] = (flatten_piece[l] / 255.)
+            pieces.append(np.dot(flatten_piece_float, eigen_vector))
+    piece_by_piece_images.append(pieces)
+
+
+
+    pass
+
+
+
     # Draw all contours in the region of interest with an area greater
     # than 800.
     # c = 0
@@ -281,7 +340,7 @@ def SudokuDigitDetector(img):
     #         cv2.drawContours(img, contours, c, (0, 255, 0), 3)
     #     c += 1
 
-    plot_original_final(original, cropped)
+    # plot_original_final(original, cropped)
 
 # Implement your algorithm here:
 
@@ -292,54 +351,62 @@ def sudokuAcc(gt, out):
 
 if __name__ == "__main__":
 
-    # # MNIST experiments:
-    # train_images, train_labels = data_path.load_training()
-    # test_images, test_labels = data_path.load_testing()
-    #
-    # n_components = 25
-    # eigen_vectors = pca(train_images)
-    #
+    # MNIST experiments:
+    train_images, train_labels = data_path.load_training()
+    test_images, test_labels = data_path.load_testing()
+
+    n_components = 25
+    eigen_vectors = pca(train_images)
+
     # # Dimensionality reduction
-    # X_train = project_onto_PC(train_images, eigen_vectors, n_components)
-    # X_test = project_onto_PC(test_images, eigen_vectors, n_components)
-    #
+    X_train = project_onto_PC(train_images, eigen_vectors, n_components)
+    X_test = project_onto_PC(test_images, eigen_vectors, n_components)
+
+
+    original_image = np.asarray(train_images[0])
+    reducted_image = reconstruct_PC(X_train[0], eigen_vectors,
+                                    n_components, train_images)
+
+    plot_images(original_image)
+    plot_images(reducted_image)
+
     # # Convert the labels to numpy arrays
-    # y_train = np.asarray(train_labels)
-    # y_test = np.asarray(test_labels)
-    #
-    # # print('Training data shape: ', X_train.shape)
-    # # print('Training labels shape: ', y_train.shape)
-    # # print('Test data shape: ', X_test.shape)
-    # # print('Test labels shape: ', y_test.shape)
-    #
-    #
-    # # Fast plot onto 2 components.
+    y_train = np.asarray(train_labels)
+    y_test = np.asarray(test_labels)
+
+    print('Training data shape: ', X_train.shape)
+    print('Training labels shape: ', y_train.shape)
+    print('Test data shape: ', X_test.shape)
+    print('Test labels shape: ', y_test.shape)
+
+
+    # Fast plot onto 2 components.
     # plot_PC(train_images, eigen_vectors, y_train)
-    #
-    #
-    # # Mask for debugging purposes...
+
+
+    # Mask for debugging purposes...
     # num_training = 60000
-    # # num_training = 1000
-    # mask = list(range(num_training))
-    # X_train = X_train[mask]
-    # y_train = y_train[mask]
-    #
+    num_training = 500
+    mask = list(range(num_training))
+    X_train = X_train[mask]
+    y_train = y_train[mask]
+
     # num_test = 10000
-    # # num_test = 100
-    # mask = list(range(num_test))
-    # X_test = X_test[mask]
-    # y_test = y_test[mask]
-    #
+    num_test = 50
+    mask = list(range(num_test))
+    X_test = X_test[mask]
+    y_test = y_test[mask]
+
     # # Reshape the image data into rows
-    # X_train = np.reshape(X_train, (X_train.shape[0], -1))
-    # X_test = np.reshape(X_test, (X_test.shape[0], -1))
-    #
+    X_train = np.reshape(X_train, (X_train.shape[0], -1))
+    X_test = np.reshape(X_test, (X_test.shape[0], -1))
+
     # # Compute the distances and store them in dists.
-    # print('Computing Distances...')
-    # dists = compute_distances(X_test, X_train)
+    print('Computing Distances...')
+    dists = compute_distances(X_test, X_train)
     #
-    # final_accuracies = {}
-    # predicted_classes = {}
+    final_accuracies = {}
+    predicted_classes = {}
     # ##########################################################################
     # # for discovering the best k, should be done once
     # # for k in range(1, 15):
@@ -362,45 +429,45 @@ if __name__ == "__main__":
     # # plt.show()
     # ##########################################################################
     # # Hardcoded best result
-    # k = 6
-    #
-    # y_test_pred = predict_labels(dists, y_train, k=k)
-    # num_correct = np.sum(y_test_pred == y_test)
-    # accuracy = float(num_correct) / num_test
-    #
-    # final_accuracies[k] = accuracy
-    # predicted_classes[k] = y_test_pred
-    #
-    # print('With %d neighbours, Got %d / %d correct => accuracy: %f' % (
-    #     k, num_correct, num_test, accuracy))
+    k = 6
+
+    y_test_pred = predict_labels(dists, y_train, k=k)
+    num_correct = np.sum(y_test_pred == y_test)
+    accuracy = float(num_correct) / num_test
+
+    final_accuracies[k] = accuracy
+    predicted_classes[k] = y_test_pred
+
+    print('With %d neighbours, Got %d / %d correct => accuracy: %f' % (
+        k, num_correct, num_test, accuracy))
     # ##########################################################################
-    #
-    #
-    # max_accuracy_key = max(final_accuracies, key=final_accuracies.get)
-    # print("highest accuracy is hit with: " +
-    #       str(max_accuracy_key) + " nearest neighbors with accuracy:"
-    #       + str(final_accuracies[max_accuracy_key]))
-    #
-    #
-    # # Confusion Matrix
-    # y_actu = pd.Series(list(y_test), name='Actual')
-    # y_pred = pd.Series(predicted_classes[max_accuracy_key], name='Predicted')
-    # df_confusion = pd.crosstab(y_actu, y_pred, rownames=['Actual'],
-    #                            colnames=['Predicted'], margins=True)
-    #
-    # print(df_confusion)
-    #
-    # # Save the confusion matrix as latex to include in the report
-    # df_confusion.to_latex('confusion_matrix.tex')
+
+
+    max_accuracy_key = max(final_accuracies, key=final_accuracies.get)
+    print("highest accuracy is hit with: " +
+          str(max_accuracy_key) + " nearest neighbors with accuracy:"
+          + str(final_accuracies[max_accuracy_key]))
+
+
+    # Confusion Matrix
+    y_actu = pd.Series(list(y_test), name='Actual')
+    y_pred = pd.Series(predicted_classes[max_accuracy_key], name='Predicted')
+    df_confusion = pd.crosstab(y_actu, y_pred, rownames=['Actual'],
+                               colnames=['Predicted'], margins=True)
+
+    print(df_confusion)
+
+    # Save the confusion matrix as latex to include in the report
+    df_confusion.to_latex('confusion_matrix.tex')
 
 
 
     # Sudoku Experiments:
 
-    image_dirs = 'images/*.jpg'
-    data_dirs = 'images/*.dat'
-    # image_dirs = 'playground/*.jpg'
-    # data_dirs = 'playground/*.dat'
+    # image_dirs = 'images/*.jpg'
+    # data_dirs = 'images/*.dat'
+    image_dirs = 'playground/*.jpg'
+    data_dirs = 'playground/*.dat'
     IMAGE_DIRS = glob.glob(image_dirs)
     DATA_DIRS = glob.glob(data_dirs)
     total_acc = 0
@@ -410,7 +477,7 @@ if __name__ == "__main__":
         image_name = os.path.basename(img_dir)
         gt = np.genfromtxt(data_dir, skip_header=2, dtype=int, delimiter=' ')
         img = cv2.imread(img_dir)
-        output = SudokuDigitDetector(img)
+        output = SudokuDigitDetector(img, eigen_vectors)
         # implement this function, inputs
         # img, outputs in the same format as data 9x9 numpy array.
         total_acc = total_acc + sudokuAcc(gt, output)

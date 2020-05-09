@@ -1,19 +1,35 @@
 \section*{Introduction}
 
 This report explains the implementation details of CS523 Computer Vision
-Assignment 2, which is about Principal Component Analysis(PCA) and its
-classification on MNIST dataset.
+Assignment 2, which is about training a kNN classifier on the MNIST dataset,
+reducing the dimensions with Principal Component Analysis(PCA) and using the
+classifier on the Sudoku Dataset to recognize the digits. I will explain the
+idea behind PCA for reducing the dimensions, the kNN classifier, processing
+methods I have used to extract digits from the Sudoku Dataset and lastly comment
+on my results.
 
-The pre-processing of the given image will be explained first and will be
-followed by the logic behind the rectangle extraction. Lastly, I will add my
-findings and comments. To run the code, there needs to be a directory which
-contains the .jpg files. The directory and main.py needs to be at the same
-level. 
+To run the code, there needs to be an images directory where the .dat files and
+.jpg files are located. Also
+\href{https://pypi.org/project/python-mnist/} {python-mnist} needs to be
+installed to load the MNIST dataset into numpy arrays.
 
-\section*{About Principal Component Analysis}
-Principal Component Analysis(PCA) is an algorithm used for dimensionality
-reduction. In the MNIST dataset, each image comes as vectors of dimension 784.
-However, not all this dimensions contain relevant information for classifying.
+
+\section*{About Principal Component Analysis} Principal Component Analysis(PCA)
+is an algorithm used for dimensionality reduction. In the MNIST hand written
+digits dataset, each image comes as vectors of dimension 784. However, we do
+not need all the dimensions contain classifying an image.  The idea is,
+compressing a matrix with a lot of features into a smaller matrix, with less
+features which preserves as much of the information in the full matrix as
+possible.
+
+In my PCA algorithm, I first did stuff.
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{images/before-after-pca.png}
+    \caption*{PCA results}
+    \setlength{\belowcaptionskip}{-20pt}
+    \setlength{\abovecaptionskip}{-20pt}
+\end{figure}
 
 
 \begin{figure}[H]
