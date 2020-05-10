@@ -36,8 +36,9 @@ def calculate_confusion_matrix(y_actual, y_predicted):
 
 def compute_distances(X, X_train):
     """
-    Computes the distance between each test point in X and each training point
-    in self.X_train without any loops
+    Compute the distance between each test point in X and each training point
+    in self.X_train using no explicit loops.
+    Input / Output: Same as compute_distances_two_loops
     """
     num_test = X.shape[0]
     num_train = X_train.shape[0]
@@ -245,24 +246,32 @@ def draw_corners(input_image, corners, radius=15, colour=(255, 0, 0)):
 
     return img
 
-# def sort_contours(cnts, method="left-to-right"):
-#     # initialize the reverse flag and sort index
-#     reverse = False
-#     i = 0
-#     # handle if we need to sort in reverse
-#     if method == "right-to-left" or method == "bottom-to-top":
-#         reverse = True
-#     # handle if we are sorting against the y-coordinate rather than
-#     # the x-coordinate of the bounding box
-#     if method == "top-to-bottom" or method == "bottom-to-top":
-#         i = 1
-#     # construct the list of bounding boxes and sort them from top to
-#     # bottom
-#     boundingBoxes = [cv2.boundingRect(c) for c in cnts]
-#     (cnts, boundingBoxes) = zip(*sorted(zip(cnts, boundingBoxes),
-#                                         key=lambda b:b[1][i], reverse=reverse))
-#     # return the list of sorted contours and bounding boxes
-#     return (cnts, boundingBoxes)
+def sort_contours(cnts, method="left-to-right"):
+    # initialize the reverse flag and sort index
+    reverse = False
+    i = 0
+    # handle if we need to sort in reverse
+    if method == "right-to-left" or method == "bottom-to-top":
+        reverse = True
+    # handle if we are sorting against the y-coordinate rather than
+    # the x-coordinate of the bounding box
+    if method == "top-to-bottom" or method == "bottom-to-top":
+        i = 1
+    # construct the list of bounding boxes and sort them from top to
+    # bottom
+    boundingBoxes = [cv2.boundingRect(c) for c in cnts]
+    (cnts, boundingBoxes) = zip(*sorted(zip(cnts, boundingBoxes),
+                                        key=lambda b:b[1][i], reverse=reverse))
+    # return the list of sorted contours and bounding boxes
+    return (cnts, boundingBoxes)
+
+
+def merge_empty_cells_with_predictions(grid, predictions):
+    predictions = np.reshape(predictions, (-1, 9))
+    mask = (grid == -1)
+    new_array = np.copy(grid)
+    new_array[mask] = predictions[mask]
+    return new_array
 
 
 def SudokuDigitDetector(img, pcs, X_train):
@@ -290,9 +299,6 @@ def SudokuDigitDetector(img, pcs, X_train):
                       reverse=True)
     largest_contour = np.squeeze(contours[0])
 
-    # grid_drawn = cv2.drawContours(original, contours, 0, (0, 255, 0), 3)
-    # plot_single_image(grid_drawn, 'sudoku grid')
-
     # Create a mask image so that we ignore everything else outside the
     # grid and focus on the board
     mask = np.zeros(gray.shape, np.uint8)
@@ -314,16 +320,31 @@ def SudokuDigitDetector(img, pcs, X_train):
 
     # Apply 4-point transform and wrap
     cropped = crop_and_warp(original, corners)
-    plot_original_final(original, cropped)
+    cropped_thresh = crop_and_warp(thresh_roi, corners)
 
-    # square_size = 28 * 9
-    # resized_img = cv2.resize(cropped, (square_size, square_size))
-    #
-    #
-    # plot_original_final(original, resized_img)
-    #
-    # gray = cv2.cvtColor(resized_img, cv2.COLOR_BGR2GRAY)
-    # thresh = cv2.adaptiveThreshold(gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
+    sudoku = cv2.resize(cropped_thresh, (450, 450))
+    grid = np.zeros([9, 9])
+    pieces = []
+    for i in range(9):
+        for j in range(9):
+            image = sudoku[i * 50:(i + 1) * 50, j * 50:(j + 1) * 50]
+            if image.mean() < 45:
+                grid[i][j] = 0
+            else:
+                grid[i][j] = -1
+            piece_res = np.resize(image, (28, 28))
+            flatten_piece = piece_res.flatten()
+            pieces.append(project_onto_PC(flatten_piece, pcs,
+                                          n_components))
+    grid = grid.astype(int)
+    plot_original_final(sudoku, sudoku)
+    print(grid)
+
+    # image = resized_img.copy()
+    # plot_original_final(image, resized_img)
+
+
+    # gray = cv2.cvtColor(cropped, cv2.COLOR_BGR2GRAY) thresh = cv2.adaptiveThreshold(gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
     #                                cv2.THRESH_BINARY_INV, 57, 5)
     #
     # # Filter out all numbers and noise to isolate only boxes
@@ -365,18 +386,18 @@ def SudokuDigitDetector(img, pcs, X_train):
     # for row in sudoku_rows:
     #     for c in row:
     #         x, y, w, h = cv2.boundingRect(c)
-    #         mask = np.zeros(resized_img.shape, dtype=np.uint8)
+    #         mask = np.zeros(cropped.shape, dtype=np.uint8)
     #         cv2.drawContours(mask, [c], -1, (255, 255, 255), -1)
-    #         result = cv2.bitwise_and(resized_img, mask)
+    #         result = cv2.bitwise_and(cropped, mask)
     #         result[mask == 0] = 255
     #         cell = result[y:y + h, x:x + w]
     #         cell_resized = cv2.resize(cell, (28, 28))
     #         cell_red = np.resize(cell_resized[2:26, 2:26], (28, 28))
-    #         pieces_original.append(cell_resized)
+    #         pieces_original.append(cell_red)
     #         cell_flattened = cell_red.flatten()
     #         pieces.append(project_onto_PC(cell_flattened, pcs, n_components))
     #         pass
-    #         # plot_original_final(cropped, result)
+            # plot_original_final(cropped, result)
 
     # Preprocess for digit extraction
     # gray = cv2.cvtColor(cropped, cv2.COLOR_BGR2GRAY)
@@ -384,15 +405,15 @@ def SudokuDigitDetector(img, pcs, X_train):
     # blur = cv2.GaussianBlur(gray, (5, 5), 0)
     # threshold = cv2.adaptiveThreshold(gray, 255, 1, 1, 51, 2)
 
-    square_size = 28 * 9
-    resized_img = cv2.resize(cropped, (square_size, square_size))
-    pieces = []
-    for j in range(0, 252, 28):
-        for k in range(0, 252, 28):
-            piece = resized_img[j: j + 28, k: k + 28]
-            piece_res = np.resize(piece[2:26, 2:26], (28, 28))
-            flatten_piece = piece_res.flatten()
-            pieces.append(project_onto_PC(flatten_piece, pcs, n_components))
+    # square_size = 28 * 9
+    # resized_img = cv2.resize(cropped, (square_size, square_size))
+    # pieces = []
+    # for j in range(0, 252, 28):
+    #     for k in range(0, 252, 28):
+    #         piece = resized_img[j: j + 28, k: k + 28]
+    #         piece_res = np.resize(piece[2:26, 2:26], (28, 28))
+    #         flatten_piece = piece_res.flatten()
+    #         pieces.append(project_onto_PC(flatten_piece, pcs, n_components))
 
     # PCA Stuff
     reducted_image = reconstruct_PC(pieces[0], pcs,
@@ -405,7 +426,7 @@ def SudokuDigitDetector(img, pcs, X_train):
     dists = compute_distances(pieces, X_train)
 
     predictions = predict_labels(dists, y_train, k=6)
-    output = np.reshape(predictions, (-1, 9))
+    output = merge_empty_cells_with_predictions(grid, predictions)
     return output
 
 
@@ -427,12 +448,12 @@ if __name__ == "__main__":
     X_test = project_onto_PC(test_images, eigen_vectors, n_components)
 
 
-    # original_image = np.asarray(train_images[0])
-    # reducted_image = reconstruct_PC(X_train[0], eigen_vectors,
-    #                                 n_components, train_images)
+    original_image = np.asarray(train_images[0])
+    reducted_image = reconstruct_PC(X_train[0], eigen_vectors,
+                                    n_components, train_images)
 
-    # plot_images(original_image)
-    # plot_images(reducted_image)
+    plot_images(original_image)
+    plot_images(reducted_image)
 
     # # Convert the labels to numpy arrays
     y_train = np.asarray(train_labels)
