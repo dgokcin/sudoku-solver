@@ -36,9 +36,8 @@ def calculate_confusion_matrix(y_actual, y_predicted):
 
 def compute_distances(X, X_train):
     """
-    Compute the distance between each test point in X and each training point
-    in self.X_train using no explicit loops.
-    Input / Output: Same as compute_distances_two_loops
+    Computes the distance between each test point in X and each training point
+    in self.X_train without any loops
     """
     num_test = X.shape[0]
     num_train = X_train.shape[0]
@@ -141,6 +140,7 @@ def plot_PC(X, pcs, labels):
     ax.set_xlabel('PC 1')
     ax.set_ylabel('PC 2')
     plt.show()
+
 
 def reconstruct_PC(x_pca, pcs, n_components, X):
     """
@@ -245,8 +245,27 @@ def draw_corners(input_image, corners, radius=15, colour=(255, 0, 0)):
 
     return img
 
+# def sort_contours(cnts, method="left-to-right"):
+#     # initialize the reverse flag and sort index
+#     reverse = False
+#     i = 0
+#     # handle if we need to sort in reverse
+#     if method == "right-to-left" or method == "bottom-to-top":
+#         reverse = True
+#     # handle if we are sorting against the y-coordinate rather than
+#     # the x-coordinate of the bounding box
+#     if method == "top-to-bottom" or method == "bottom-to-top":
+#         i = 1
+#     # construct the list of bounding boxes and sort them from top to
+#     # bottom
+#     boundingBoxes = [cv2.boundingRect(c) for c in cnts]
+#     (cnts, boundingBoxes) = zip(*sorted(zip(cnts, boundingBoxes),
+#                                         key=lambda b:b[1][i], reverse=reverse))
+#     # return the list of sorted contours and bounding boxes
+#     return (cnts, boundingBoxes)
 
-def SudokuDigitDetector(img, eigen_vector):
+
+def SudokuDigitDetector(img, pcs, X_train):
 
     original = img.copy()
 
@@ -295,60 +314,99 @@ def SudokuDigitDetector(img, eigen_vector):
 
     # Apply 4-point transform and wrap
     cropped = crop_and_warp(original, corners)
+    plot_original_final(original, cropped)
+
+    # square_size = 28 * 9
+    # resized_img = cv2.resize(cropped, (square_size, square_size))
+    #
+    #
+    # plot_original_final(original, resized_img)
+    #
+    # gray = cv2.cvtColor(resized_img, cv2.COLOR_BGR2GRAY)
+    # thresh = cv2.adaptiveThreshold(gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
+    #                                cv2.THRESH_BINARY_INV, 57, 5)
+    #
+    # # Filter out all numbers and noise to isolate only boxes
+    # cnts = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+    # cnts = cnts[0] if len(cnts) == 2 else cnts[1]
+    # for c in cnts:
+    #     area = cv2.contourArea(c)
+    #     if area < 1000:
+    #         cv2.drawContours(thresh, [c], -1, (0, 0, 0), -1)
+    #
+    # # Fix horizontal and vertical lines
+    # vertical_kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (1, 5))
+    # thresh = cv2.morphologyEx(thresh, cv2.MORPH_CLOSE, vertical_kernel,
+    #                           iterations=9)
+    # horizontal_kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (5, 1))
+    # thresh = cv2.morphologyEx(thresh, cv2.MORPH_CLOSE, horizontal_kernel,
+    #                           iterations=4)
+    #
+    # # Sort by top to bottom and each row by left to right
+    # invert = 255 - thresh
+    # cnts = cv2.findContours(invert, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+    # cnts = cnts[0] if len(cnts) == 2 else cnts[1]
+    # (cnts, _) = sort_contours(cnts, method="top-to-bottom")
+    #
+    # sudoku_rows = []
+    # row = []
+    # for (i, c) in enumerate(cnts, 1):
+    #     area = cv2.contourArea(c)
+    #     if area < 50000:
+    #         row.append(c)
+    #         if i % 9 == 0:
+    #             (cnts, _) = sort_contours(row, method="left-to-right")
+    #             sudoku_rows.append(cnts)
+    #             row = []
+    #
+    # # Iterate through each box
+    # pieces = []
+    # pieces_original = []
+    # for row in sudoku_rows:
+    #     for c in row:
+    #         x, y, w, h = cv2.boundingRect(c)
+    #         mask = np.zeros(resized_img.shape, dtype=np.uint8)
+    #         cv2.drawContours(mask, [c], -1, (255, 255, 255), -1)
+    #         result = cv2.bitwise_and(resized_img, mask)
+    #         result[mask == 0] = 255
+    #         cell = result[y:y + h, x:x + w]
+    #         cell_resized = cv2.resize(cell, (28, 28))
+    #         cell_red = np.resize(cell_resized[2:26, 2:26], (28, 28))
+    #         pieces_original.append(cell_resized)
+    #         cell_flattened = cell_red.flatten()
+    #         pieces.append(project_onto_PC(cell_flattened, pcs, n_components))
+    #         pass
+    #         # plot_original_final(cropped, result)
 
     # Preprocess for digit extraction
-    gray = cv2.cvtColor(cropped, cv2.COLOR_BGR2GRAY)
+    # gray = cv2.cvtColor(cropped, cv2.COLOR_BGR2GRAY)
 
-    blur = cv2.GaussianBlur(gray, (5, 5), 0)
-    threshold = cv2.adaptiveThreshold(blur, 255, 1, 1, 51, 2)
+    # blur = cv2.GaussianBlur(gray, (5, 5), 0)
+    # threshold = cv2.adaptiveThreshold(gray, 255, 1, 1, 51, 2)
 
     square_size = 28 * 9
-    resized_img = cv2.resize(threshold, (square_size, square_size))
-    # rotated_images = [resized_img]
-    #
-    # for i in range(3):
-    #     rotated_image = np.rot90(rotated_images[i])
-    #     rotated_images.append(rotated_image)
-    #
-    piece_by_piece_images = []
-    # for i in range(len(rotated_images)):
+    resized_img = cv2.resize(cropped, (square_size, square_size))
     pieces = []
-    for j in range(0, len(resized_img), 28):
-        for k in range(0, len(resized_img), 28):
+    for j in range(0, 252, 28):
+        for k in range(0, 252, 28):
             piece = resized_img[j: j + 28, k: k + 28]
             piece_res = np.resize(piece[2:26, 2:26], (28, 28))
             flatten_piece = piece_res.flatten()
-            pieces.append(project_onto_PC(flatten_piece, eigen_vector, n_components))
+            pieces.append(project_onto_PC(flatten_piece, pcs, n_components))
 
     # PCA Stuff
-    reducted_image = reconstruct_PC(pieces[0], eigen_vector,
+    reducted_image = reconstruct_PC(pieces[0], pcs,
                                     n_components, train_images)
-
-    # dists = compute_distances(pieces, X_train)
-    # plot_images(reducted_image)
-    print("asd")
+    plot_images(reducted_image)
 
 
+    pieces = np.array(pieces)
+    X_train = np.reshape(X_train, (X_train.shape[0], -1))
+    dists = compute_distances(pieces, X_train)
 
-
-
-    pass
-
-
-
-    # Draw all contours in the region of interest with an area greater
-    # than 800.
-    # c = 0
-    # for i in contours:
-    #     area = cv2.contourArea(i)
-    #     if area > 5000:
-    #         # print(area)
-    #         cv2.drawContours(img, contours, c, (0, 255, 0), 3)
-    #     c += 1
-
-    # plot_original_final(original, cropped)
-
-# Implement your algorithm here:
+    predictions = predict_labels(dists, y_train, k=6)
+    output = np.reshape(predictions, (-1, 9))
+    return output
 
 
 def sudokuAcc(gt, out):
@@ -369,12 +427,12 @@ if __name__ == "__main__":
     X_test = project_onto_PC(test_images, eigen_vectors, n_components)
 
 
-    original_image = np.asarray(train_images[0])
-    reducted_image = reconstruct_PC(X_train[0], eigen_vectors,
-                                    n_components, train_images)
+    # original_image = np.asarray(train_images[0])
+    # reducted_image = reconstruct_PC(X_train[0], eigen_vectors,
+    #                                 n_components, train_images)
 
-    plot_images(original_image)
-    plot_images(reducted_image)
+    # plot_images(original_image)
+    # plot_images(reducted_image)
 
     # # Convert the labels to numpy arrays
     y_train = np.asarray(train_labels)
@@ -485,7 +543,7 @@ if __name__ == "__main__":
         image_name = os.path.basename(img_dir)
         gt = np.genfromtxt(data_dir, skip_header=2, dtype=int, delimiter=' ')
         img = cv2.imread(img_dir)
-        output = SudokuDigitDetector(img, eigen_vectors)
+        output = SudokuDigitDetector(img, eigen_vectors, X_train)
         # implement this function, inputs
         # img, outputs in the same format as data 9x9 numpy array.
         total_acc = total_acc + sudokuAcc(gt, output)
