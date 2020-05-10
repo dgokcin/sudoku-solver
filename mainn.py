@@ -328,6 +328,7 @@ def SudokuDigitDetector(img, pcs, X_train):
                 grid[i][j] = 0
             else:
                 grid[i][j] = -1
+
             piece_res = np.resize(image, (28, 28))
             flatten_piece = piece_res.flatten()
             pieces.append(project_onto_PC(flatten_piece, pcs,
@@ -384,14 +385,14 @@ if __name__ == "__main__":
 
 
     # Mask for debugging purposes...
-    num_training = 60000
-    # num_training = 500
+    # num_training = 60000
+    num_training = 500
     mask = list(range(num_training))
     X_train = X_train[mask]
     y_train = y_train[mask]
 
-    num_test = 10000
-    # num_test = 50
+    # num_test = 10000
+    num_test = 50
     mask = list(range(num_test))
     X_test = X_test[mask]
     y_test = y_test[mask]
@@ -465,10 +466,10 @@ if __name__ == "__main__":
 
     # image_dirs = 'images/*.jpg'
     # data_dirs = 'images/*.dat'
-    image_dirs = 'v2_test/*.jpg'
-    data_dirs = 'v2_test/*.dat'
-    # image_dirs = 'playground/*.jpg'
-    # data_dirs = 'playground/*.dat'
+    # image_dirs = 'v2_test/*.jpg'
+    # data_dirs = 'v2_test/*.dat'
+    image_dirs = 'playground/*.jpg'
+    data_dirs = 'playground/*.dat'
     IMAGE_DIRS = glob.glob(image_dirs)
     DATA_DIRS = glob.glob(data_dirs)
     total_acc = 0

@@ -123,34 +123,38 @@ image. To use the kNN classifier on each digit on the Sudoku Dataset to get the
 digits, I needed to do some processing. First I did a perspective transform to
 obtain a bird eye view of the sudoku grid. 
 
-
-Afterwards I resized the transformed image to 252 x 252 so that I can iterate
-over the pixels of the image with a 28 x 28 box.
+Afterwards, I resized the image to 450 x 450 to iterate over it in 50 by 50 so
+that I cover a cell with each iteration.
 
 \begin{figure}[H]
     \centering
     \includegraphics[width=\textwidth]{images/wrapped.png}
-    \caption*{Original,wrapped and Resized Sudoku Grid}
+    \caption*{Original,wrapped and Poorly Extracted Sudoku Grid}
     \setlength{\belowcaptionskip}{-20pt}
     \setlength{\abovecaptionskip}{-20pt}
 \end{figure}
 
-I iterated over image and extracted each 28 by 28 square and projected them onto
-their first 25 principal components using the principal components I have
-computed at the beginning. I repeated the steps that I have followed for
-computing the distances and predicting the labels this time for the extracted
-pieces from the sudoku grid.
+I iterated over image and extracted each 28 by 28 square. After some trial and
+error, I decided to use the mean of each cell to determine if that cell is empty
+or not. I created a 9 x 9 zero matrix to store the digit data, and marked the
+non empty cells with -1. I projected each extracted cell to their first 25
+principal components using the principal components I have computed at the
+beginning. I repeated the steps that I have followed for computing the distances
+and predicting the labels this time for the extracted pieces from the sudoku
+grid.
 
+Lastly I combined the prediction array and the grid array which resulted a final
+9 x 9 array with my predictions and empty cells.
+
+In the end U ended up with 38\% accuracy in the sudoku dataset.
 
 \section*{Results}
 
 I can say that the PCA for dimensionality reduction worked really well. In the
 scatter plot, it is easy to see the clustering. The kNN algorithm also did a
-great job in classifying the test images with an accuracy of 97.37\%. With this
-project, I had a chance to understand the power of the matrix multiplications
-since they helped me to reduce a process which took 30 minutes to just a couple
-of minutes.
-
-
-
+great job in classifying the test images with an accuracy of 97.37\%.
+Unfortunately sudoku predictions were not so well because of the existing grid
+lines on extracted digits. With this project, I had a chance to understand the
+power of the matrix multiplications since they helped me to reduce a process
+which took 30 minutes to just a couple of minutes.
 
