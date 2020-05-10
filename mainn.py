@@ -1,11 +1,6 @@
 # DO NOT IMPORT ANY OTHER LIBRARY.
-# knnL=: https://anujkatiyal.com/blog/2017/10/01/ml-knn/#.XrBjJxMzZ0I
-# pca: https://github.com/stabgan/Recognition-of-Hand-Written-Digits-MNIST-from
-# -Scratch/blob/master/part1/main.py
-# https://jakevdp.github.io/PythonDataScienceHandbook/05.09-principal\
-#          -component-analysis.html
+
 import math
-import operator
 
 import numpy as np
 import glob
@@ -276,6 +271,7 @@ def merge_empty_cells_with_predictions(grid, predictions):
 
 def SudokuDigitDetector(img, pcs, X_train):
 
+    # Copy the original image
     original = img.copy()
 
     # Convert to grayscale, since color information is not needed.
@@ -288,7 +284,6 @@ def SudokuDigitDetector(img, pcs, X_train):
     # background
     thresh = cv2.adaptiveThreshold(blur, 255, 1, 1, 31, 2)
 
-    # plot_images(gray, blur, thresh, 'gray', 'blurred', 'threshold')
 
     # Find all contours in the threshold image.
     contours, hire = cv2.findContours(thresh, cv2.RETR_TREE,
@@ -328,6 +323,7 @@ def SudokuDigitDetector(img, pcs, X_train):
     for i in range(9):
         for j in range(9):
             image = sudoku[i * 50:(i + 1) * 50, j * 50:(j + 1) * 50]
+            # If mean is smaller than 45 this is an empty cell.
             if image.mean() < 45:
                 grid[i][j] = 0
             else:
@@ -337,85 +333,9 @@ def SudokuDigitDetector(img, pcs, X_train):
             pieces.append(project_onto_PC(flatten_piece, pcs,
                                           n_components))
     grid = grid.astype(int)
-    plot_original_final(sudoku, sudoku)
-    print(grid)
-
-    # image = resized_img.copy()
-    # plot_original_final(image, resized_img)
 
 
-    # gray = cv2.cvtColor(cropped, cv2.COLOR_BGR2GRAY) thresh = cv2.adaptiveThreshold(gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
-    #                                cv2.THRESH_BINARY_INV, 57, 5)
-    #
-    # # Filter out all numbers and noise to isolate only boxes
-    # cnts = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-    # cnts = cnts[0] if len(cnts) == 2 else cnts[1]
-    # for c in cnts:
-    #     area = cv2.contourArea(c)
-    #     if area < 1000:
-    #         cv2.drawContours(thresh, [c], -1, (0, 0, 0), -1)
-    #
-    # # Fix horizontal and vertical lines
-    # vertical_kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (1, 5))
-    # thresh = cv2.morphologyEx(thresh, cv2.MORPH_CLOSE, vertical_kernel,
-    #                           iterations=9)
-    # horizontal_kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (5, 1))
-    # thresh = cv2.morphologyEx(thresh, cv2.MORPH_CLOSE, horizontal_kernel,
-    #                           iterations=4)
-    #
-    # # Sort by top to bottom and each row by left to right
-    # invert = 255 - thresh
-    # cnts = cv2.findContours(invert, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-    # cnts = cnts[0] if len(cnts) == 2 else cnts[1]
-    # (cnts, _) = sort_contours(cnts, method="top-to-bottom")
-    #
-    # sudoku_rows = []
-    # row = []
-    # for (i, c) in enumerate(cnts, 1):
-    #     area = cv2.contourArea(c)
-    #     if area < 50000:
-    #         row.append(c)
-    #         if i % 9 == 0:
-    #             (cnts, _) = sort_contours(row, method="left-to-right")
-    #             sudoku_rows.append(cnts)
-    #             row = []
-    #
-    # # Iterate through each box
-    # pieces = []
-    # pieces_original = []
-    # for row in sudoku_rows:
-    #     for c in row:
-    #         x, y, w, h = cv2.boundingRect(c)
-    #         mask = np.zeros(cropped.shape, dtype=np.uint8)
-    #         cv2.drawContours(mask, [c], -1, (255, 255, 255), -1)
-    #         result = cv2.bitwise_and(cropped, mask)
-    #         result[mask == 0] = 255
-    #         cell = result[y:y + h, x:x + w]
-    #         cell_resized = cv2.resize(cell, (28, 28))
-    #         cell_red = np.resize(cell_resized[2:26, 2:26], (28, 28))
-    #         pieces_original.append(cell_red)
-    #         cell_flattened = cell_red.flatten()
-    #         pieces.append(project_onto_PC(cell_flattened, pcs, n_components))
-    #         pass
-            # plot_original_final(cropped, result)
-
-    # Preprocess for digit extraction
-    # gray = cv2.cvtColor(cropped, cv2.COLOR_BGR2GRAY)
-
-    # blur = cv2.GaussianBlur(gray, (5, 5), 0)
-    # threshold = cv2.adaptiveThreshold(gray, 255, 1, 1, 51, 2)
-
-    # square_size = 28 * 9
-    # resized_img = cv2.resize(cropped, (square_size, square_size))
-    # pieces = []
-    # for j in range(0, 252, 28):
-    #     for k in range(0, 252, 28):
-    #         piece = resized_img[j: j + 28, k: k + 28]
-    #         piece_res = np.resize(piece[2:26, 2:26], (28, 28))
-    #         flatten_piece = piece_res.flatten()
-    #         pieces.append(project_onto_PC(flatten_piece, pcs, n_components))
-
-    # PCA Stuff
+    # Reduct image from its principal components
     reducted_image = reconstruct_PC(pieces[0], pcs,
                                     n_components, train_images)
     plot_images(reducted_image)
@@ -443,41 +363,35 @@ if __name__ == "__main__":
     n_components = 25
     eigen_vectors = pca(train_images)
 
-    # # Dimensionality reduction
+    # Dimensionality reduction
     X_train = project_onto_PC(train_images, eigen_vectors, n_components)
     X_test = project_onto_PC(test_images, eigen_vectors, n_components)
 
 
-    original_image = np.asarray(train_images[0])
-    reducted_image = reconstruct_PC(X_train[0], eigen_vectors,
-                                    n_components, train_images)
+    # For visualization
+    # original_image = np.asarray(train_images[0])
+    # reducted_image = reconstruct_PC(X_train[0], eigen_vectors,
+    #                                 n_components, train_images)
+    # plot_images(original_image)
+    # plot_images(reducted_image)
 
-    plot_images(original_image)
-    plot_images(reducted_image)
-
-    # # Convert the labels to numpy arrays
+    # Convert the labels to numpy arrays
     y_train = np.asarray(train_labels)
     y_test = np.asarray(test_labels)
-
-    print('Training data shape: ', X_train.shape)
-    print('Training labels shape: ', y_train.shape)
-    print('Test data shape: ', X_test.shape)
-    print('Test labels shape: ', y_test.shape)
-
 
     # Fast plot onto 2 components.
     # plot_PC(train_images, eigen_vectors, y_train)
 
 
     # Mask for debugging purposes...
-    # num_training = 60000
-    num_training = 500
+    num_training = 60000
+    # num_training = 500
     mask = list(range(num_training))
     X_train = X_train[mask]
     y_train = y_train[mask]
 
-    # num_test = 10000
-    num_test = 50
+    num_test = 10000
+    # num_test = 50
     mask = list(range(num_test))
     X_test = X_test[mask]
     y_test = y_test[mask]
@@ -489,7 +403,6 @@ if __name__ == "__main__":
     # # Compute the distances and store them in dists.
     print('Computing Distances...')
     dists = compute_distances(X_test, X_train)
-    # dists = compute_distances(pieces, X_train)
 
     #
     final_accuracies = {}
@@ -515,7 +428,8 @@ if __name__ == "__main__":
     # # plt.ylabel("Accuracy")
     # # plt.show()
     # ##########################################################################
-    # # Hardcoded best result
+
+    # Hardcoded best k value for 25 components
     k = 6
 
     y_test_pred = predict_labels(dists, y_train, k=k)
@@ -531,9 +445,6 @@ if __name__ == "__main__":
 
 
     max_accuracy_key = max(final_accuracies, key=final_accuracies.get)
-    print("highest accuracy is hit with: " +
-          str(max_accuracy_key) + " nearest neighbors with accuracy:"
-          + str(final_accuracies[max_accuracy_key]))
 
 
     # Confusion Matrix
@@ -541,6 +452,7 @@ if __name__ == "__main__":
     y_pred = pd.Series(predicted_classes[max_accuracy_key], name='Predicted')
     df_confusion = pd.crosstab(y_actu, y_pred, rownames=['Actual'],
                                colnames=['Predicted'], margins=True)
+
 
     print(df_confusion)
 
@@ -553,8 +465,10 @@ if __name__ == "__main__":
 
     # image_dirs = 'images/*.jpg'
     # data_dirs = 'images/*.dat'
-    image_dirs = 'playground/*.jpg'
-    data_dirs = 'playground/*.dat'
+    image_dirs = 'v2_test/*.jpg'
+    data_dirs = 'v2_test/*.dat'
+    # image_dirs = 'playground/*.jpg'
+    # data_dirs = 'playground/*.dat'
     IMAGE_DIRS = glob.glob(image_dirs)
     DATA_DIRS = glob.glob(data_dirs)
     total_acc = 0
