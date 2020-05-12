@@ -21,6 +21,10 @@ data_path = MNIST(os.path.join(os.path.dirname(__file__), "mnist"))
 
 # Helper functions for mnist & pca
 def calculate_confusion_matrix(y_actual, y_predicted):
+    """
+    Calculates the distance matrix when given actial values and predicted
+    values
+    """
     df_confusion = pd.crosstab(y_actual, y_predicted,
                                rownames=['Actual'],
                                colnames=['Predicted'],
@@ -32,8 +36,7 @@ def calculate_confusion_matrix(y_actual, y_predicted):
 def compute_distances(X, X_train):
     """
     Compute the distance between each test point in X and each training point
-    in self.X_train using no explicit loops.
-    Input / Output: Same as compute_distances_two_loops
+    in X_train using no loops
     """
     num_test = X.shape[0]
     num_train = X_train.shape[0]
@@ -48,12 +51,6 @@ def predict_labels(dists, y_train, k=1):
     """
     Given a matrix of distances between test points and training points,
     predict a label for each test point.
-    Inputs:
-    - dists: A numpy array of shape (num_test, num_train) where dists[i, j]
-      gives the distance betwen the ith test point and the jth training point.
-    Returns:
-    - y: A numpy array of shape (num_test,) containing predicted labels for the
-      test data, where y[i] is the predicted label for the test point X[i].
     """
     num_test = dists.shape[0]
     y_pred = np.zeros(num_test)
@@ -68,11 +65,6 @@ def predict_labels(dists, y_train, k=1):
 def center_data(X):
     """
     Returns a centered version of the data, where each feature now has mean = 0
-    Args:
-        X - n x d NumPy array of n data points, each with d features
-    Returns:
-        n x d NumPy array X' where for each i = 1, ..., n and j = 1, ..., d:
-        X'[i][j] = X[i][j] - means[j]
     """
     arr = np.array(X)
     feature_means = arr.mean(axis=0)
@@ -91,6 +83,7 @@ def pca(X):
     centered_data = center_data(X)  # first center data
     scatter_matrix = np.dot(centered_data.transpose(), centered_data)
     eigen_values, eigen_vectors = np.linalg.eig(scatter_matrix)
+
     # Re-order eigenvectors by eigenvalue magnitude:
     idx = eigen_values.argsort()[::-1]
     eigen_values = eigen_values[idx]
@@ -100,37 +93,23 @@ def pca(X):
 
 def project_onto_PC(X, pcs, n_components):
     """
-    Given principal component vectors eigen_vectors = principal_components(X)
-    this function returns a new data array in which each sample in X
-    has been projected onto the first n_components principcal components.
+    Given principal component vectors eigen_vectors, this function returns
+    a new data array in which each sample in X has been projected onto the
+    first n_components principcal components.
     """
-    # TODO: first center data using the centerData() function.
-    # TODO: Return the projection of the centered dataset
-    #       on the first n_components principal components.
-    #       This should be an array with dimensions: n x n_components.
-    # Hint: these principal components = first n_components columns
-    #       of the eigenvectors returned by principal_components().
-    #       Note that each eigenvector is already be a unit-vector,
-    #       so the projection may be done using matrix multiplication.
-
     return np.dot(center_data(X), pcs[:, :n_components])
 
 
 def plot_PC(X, pcs, labels):
     """
-    Given the principal component vectors as the columns of matrix eigen_vectors,
-    this function projects each sample in X onto the first two principal components
-    and produces a scatterplot where points are marked with the digit depicted in
-    the corresponding image.
-    labels = a numpy array containing the digits corresponding to each image in X.
+    Given the principal component vectors as the columns of matrix
+    eigen_vectors, this function projects each sample in X onto the first
+    two principal components.
     """
     pc_data = project_onto_PC(X, pcs, n_components=2)
-    text_labels = [str(z) for z in labels.tolist()]
     fig, ax = plt.subplots()
     im = ax.scatter(pc_data[:, 0], pc_data[:, 1], c=labels, edgecolor='none',
                     alpha=0.5, cmap=plt.cm.get_cmap('jet', 10))
-    # for i, txt in enumerate(text_labels):
-    #     ax.annotate(txt, (pc_data[i, 0], pc_data[i, 1]))
     fig.colorbar(im, ax=ax)
     im.set_clim(0, 9)
     ax.set_xlabel('PC 1')
@@ -164,6 +143,7 @@ def plot_images(X):
         plt.axis('off')
     plt.show()
 
+
 # Helper functions for sudoku stuff
 # Plots the original image next to the processed image
 def plot_original_final(original, final):
@@ -174,6 +154,7 @@ def plot_original_final(original, final):
     plt.show()
 
 
+# Calculates the distance two points.
 def distance_between(p1, p2):
     """Returns the scalar distance between two points"""
     a = p2[0] - p1[0]
@@ -182,7 +163,8 @@ def distance_between(p1, p2):
 
 
 def crop_and_warp(img, crop_rect):
-    """Crops and warps a rectangular section from an image into a square of similar size."""
+    """Crops and warps a rectangular section from an image into
+     a square of similar size."""
 
     # Rectangle described by top left, top right, bottom right and bottom left points
     top_left, top_right, bottom_right, bottom_left = crop_rect[0], crop_rect[1], crop_rect[2], crop_rect[3]
@@ -209,6 +191,10 @@ def crop_and_warp(img, crop_rect):
 
 
 def get_corners(img):
+    """
+    This function extracts and returns the corner points of the largest
+    contours
+    """
     contours, hire = cv2.findContours(img, cv2.RETR_EXTERNAL,
                                       cv2.CHAIN_APPROX_SIMPLE)
     contours = sorted(contours, key=lambda x: cv2.contourArea(x),
@@ -230,6 +216,10 @@ def get_corners(img):
 
 
 def draw_corners(input_image, corners, radius=15, colour=(255, 0, 0)):
+    """
+    When given an image and corner points, this function draws the corners
+    onto that image.
+    """
     img = input_image.copy()
     if len(colour) == 3:
         if len(img.shape) == 2:
@@ -243,8 +233,11 @@ def draw_corners(input_image, corners, radius=15, colour=(255, 0, 0)):
     return img
 
 
-
 def merge_empty_cells_with_predictions(grid, predictions):
+    """
+    This function merges the detected empty cells and the predictions with
+    knn into one 9 x 9 numpy array
+    """
     predictions = np.reshape(predictions, (-1, 9))
     mask = (grid == -1)
     new_array = np.copy(grid)
@@ -328,7 +321,6 @@ def SudokuDigitDetector(img, pcs, X_train):
             pieces.append(project_onto_PC(flatten_piece, pcs,
                                           n_components))
     grid = grid.astype(int)
-
 
     # Reduct image from its principal components
     # reducted_image = reconstruct_PC(pieces[0], pcs,
