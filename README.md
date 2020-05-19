@@ -1,2 +1,2 @@
 # sudoku-solver
-A Sudoku Detector that detects the Sudoku Puzzle and solves it.
+A Sudoku Detector that detects the Sudoku Puzzle in a given image and recognixes the digits.
